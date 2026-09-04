@@ -18,9 +18,6 @@ resource "aws_launch_template" "app" {
   user_data = base64encode(<<-EOF
               #!/bin/bash
 
-
-              set -e
-              
               apt-get update -y
               apt-get install -y python3 python3-pip python3-venv
 
@@ -28,8 +25,8 @@ resource "aws_launch_template" "app" {
 
               python3 -m venv /opt/app/venv
 
-              /opt/app/venv/bin/pip install --upgrade pip
-              /opt/app/venv/bin/pip install mysql-connector-python
+              /opt/app/venv/bin/python -m pip install --upgrade pip
+              /opt/app/venv/bin/python -m pip install --no-cache-dir mysql-connector-python
               /opt/app/venv/bin/python -c "import mysql.connector; print('mysql-connector-python installed successfully')"
 
               cat > /opt/app/app.py <<'PYTHON'
@@ -163,4 +160,3 @@ resource "aws_launch_template" "app" {
     create_before_destroy = true
   }
 }
-
