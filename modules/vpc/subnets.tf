@@ -79,9 +79,9 @@ resource "aws_subnet" "app_az2" {
 # DB tier subnets
 # ---------------------------
 resource "aws_subnet" "db_az1" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.db_subnet_cidrs[0]
-  availability_zone = var.availability_zones[0]
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.db_subnet_cidrs[0]
+  availability_zone       = var.availability_zones[0]
   map_public_ip_on_launch = true
 
   tags = {
@@ -91,9 +91,9 @@ resource "aws_subnet" "db_az1" {
 }
 
 resource "aws_subnet" "db_az2" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.db_subnet_cidrs[1]
-  availability_zone = var.availability_zones[1]
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.db_subnet_cidrs[1]
+  availability_zone       = var.availability_zones[1]
   map_public_ip_on_launch = true
 
   tags = {
