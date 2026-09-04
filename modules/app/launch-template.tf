@@ -1,3 +1,4 @@
+```hcl
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.environment}-app-"
   image_id      = "ami-0f918f7e67a3323f0"
@@ -9,79 +10,69 @@ resource "aws_launch_template" "app" {
 
   network_interfaces {
     associate_public_ip_address = false
-    security_groups             = [var.app_security_group_id]
+
+    security_groups = [
+      var.app_security_group_id
+    ]
   }
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
-              set -e
 
-              # ---------------------------------------
-              # System packages
-              # ---------------------------------------
               apt-get update -y
-              apt-get install -y python3 python3-pip python3-venv snapd
+              apt-get install -y python3 python3-pip python3-venv
 
-              # ---------------------------------------
-              # Install and start AWS SSM Agent
-              # ---------------------------------------
-              snap install amazon-ssm-agent --classic
-
-              systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
-              systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
-
-              # ---------------------------------------
-              # Application setup
-              # ---------------------------------------
               mkdir -p /opt/app
+
               python3 -m venv /opt/app/venv
 
               /opt/app/venv/bin/pip install --upgrade pip
               /opt/app/venv/bin/pip install mysql-connector-python
 
-              # ---------------------------------------
-              # Application code
-              # ---------------------------------------
               cat > /opt/app/app.py <<'PYTHON'
               import os
-              import mysql.connector
               from http.server import BaseHTTPRequestHandler, HTTPServer
-
-              DB_HOST = os.environ["DB_HOST"]
-              DB_NAME = os.environ["DB_NAME"]
-              DB_USER = os.environ["DB_USER"]
-              DB_PASSWORD = os.environ["DB_PASSWORD"]
 
               class AppHandler(BaseHTTPRequestHandler):
 
                   def do_GET(self):
+
                       if self.path == "/":
                           self.send_response(200)
                           self.send_header("Content-Type", "text/html")
                           self.end_headers()
+
                           self.wfile.write(
                               b"<h1>App Server is running</h1>"
                           )
                           return
 
                       if self.path == "/db":
+
                           try:
+                              import mysql.connector
+
                               connection = mysql.connector.connect(
-                                  host=DB_HOST,
-                                  database=DB_NAME,
-                                  user=DB_USER,
-                                  password=DB_PASSWORD
+                                  host=os.environ["DB_HOST"],
+                                  database=os.environ["DB_NAME"],
+                                  user=os.environ["DB_USER"],
+                                  password=os.environ["DB_PASSWORD"]
                               )
 
                               cursor = connection.cursor()
+
                               cursor.execute("SELECT DATABASE()")
+
                               result = cursor.fetchone()
 
                               cursor.close()
                               connection.close()
 
                               self.send_response(200)
-                              self.send_header("Content-Type", "text/html")
+                              self.send_header(
+                                  "Content-Type",
+                                  "text/html"
+                              )
                               self.end_headers()
 
                               response = (
@@ -89,11 +80,17 @@ resource "aws_launch_template" "app" {
                                   f"<p>Database: {result[0]}</p>"
                               )
 
-                              self.wfile.write(response.encode())
+                              self.wfile.write(
+                                  response.encode()
+                              )
 
                           except Exception as error:
+
                               self.send_response(500)
-                              self.send_header("Content-Type", "text/html")
+                              self.send_header(
+                                  "Content-Type",
+                                  "text/html"
+                              )
                               self.end_headers()
 
                               response = (
@@ -101,20 +98,24 @@ resource "aws_launch_template" "app" {
                                   f"<p>{error}</p>"
                               )
 
-                              self.wfile.write(response.encode())
+                              self.wfile.write(
+                                  response.encode()
+                              )
 
                           return
 
                       self.send_response(404)
                       self.end_headers()
 
-              server = HTTPServer(("0.0.0.0", 8080), AppHandler)
+
+              server = HTTPServer(
+                  ("0.0.0.0", 8080),
+                  AppHandler
+              )
+
               server.serve_forever()
               PYTHON
 
-              # ---------------------------------------
-              # Application systemd service
-              # ---------------------------------------
               cat > /etc/systemd/system/app.service <<EOF_SERVICE
               [Unit]
               Description=3-Tier Application Server
@@ -123,11 +124,14 @@ resource "aws_launch_template" "app" {
               [Service]
               Type=simple
               User=root
+
               Environment="DB_HOST=${var.rds_endpoint}"
               Environment="DB_NAME=appdb"
               Environment="DB_USER=admin"
               Environment="DB_PASSWORD=${var.db_password}"
+
               ExecStart=/opt/app/venv/bin/python /opt/app/app.py
+
               Restart=always
               RestartSec=5
 
@@ -136,8 +140,8 @@ resource "aws_launch_template" "app" {
               EOF_SERVICE
 
               systemctl daemon-reload
-              systemctl enable app
-              systemctl restart app
+              systemctl enable app.service
+              systemctl restart app.service
 
               EOF
   )
@@ -156,4 +160,4 @@ resource "aws_launch_template" "app" {
     create_before_destroy = true
   }
 }
-
+```
