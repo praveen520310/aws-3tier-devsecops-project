@@ -24,12 +24,6 @@ resource "aws_launch_template" "app" {
               apt-get update -y
               apt-get install -y python3 python3-pip python3-venv snapd
 
-             snap install amazon-ssm-agent --classic
-
-            systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
-            systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
-
-
               mkdir -p /opt/app
 
               python3 -m venv /opt/app/venv
