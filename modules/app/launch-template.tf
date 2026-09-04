@@ -14,8 +14,10 @@ resource "aws_launch_template" "app" {
   user_data = base64encode(<<-EOF
               #!/bin/bash
 
-              dnf update -y
-              dnf install -y python3
+              set -e
+
+              apt-get update -y
+              apt-get install -y python3
 
               mkdir -p /opt/app
 

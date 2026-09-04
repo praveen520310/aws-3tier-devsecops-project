@@ -9,10 +9,22 @@ resource "aws_autoscaling_group" "app" {
 
   launch_template {
     id      = aws_launch_template.app.id
-    version = "$Latest"
+    version = aws_launch_template.app.latest_version
   }
 
   health_check_type = "EC2"
+
+  instance_refresh {
+    strategy = "Rolling"
+
+    preferences {
+      min_healthy_percentage = 50
+      instance_warmup        = 120
+      skip_matching          = true
+    }
+
+    triggers = ["launch_template"]
+  }
 
   tag {
     key                 = "Name"
