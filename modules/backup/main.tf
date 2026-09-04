@@ -56,38 +56,12 @@ resource "aws_backup_plan" "main" {
   }
 }
 
-resource "aws_backup_selection" "web" {
-  name         = "${var.environment}-web-backup"
+resource "aws_backup_selection" "ec2" {
+  name         = "${var.environment}-ec2-backup"
   iam_role_arn = aws_iam_role.backup.arn
   plan_id      = aws_backup_plan.main.id
 
-  selection_tag {
-    type  = "STRINGEQUALS"
-    key   = "Environment"
-    value = var.environment
-  }
-
-  selection_tag {
-    type  = "STRINGEQUALS"
-    key   = "Tier"
-    value = "web"
-  }
-}
-
-resource "aws_backup_selection" "app" {
-  name         = "${var.environment}-app-backup"
-  iam_role_arn = aws_iam_role.backup.arn
-  plan_id      = aws_backup_plan.main.id
-
-  selection_tag {
-    type  = "STRINGEQUALS"
-    key   = "Environment"
-    value = var.environment
-  }
-
-  selection_tag {
-    type  = "STRINGEQUALS"
-    key   = "Tier"
-    value = "app"
-  }
+  resources = [
+    "arn:aws:ec2:ap-south-1:*:instance/*"
+  ]
 }
