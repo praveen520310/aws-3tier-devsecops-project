@@ -27,3 +27,8 @@ output "read_replica_address" {
   description = "RDS cross-region read replica hostname"
   value       = aws_db_instance.read_replica.address
 }
+
+output "rds_endpoint" {
+  description = "RDS primary endpoint"
+  value       = aws_db_instance.main.address
+}

@@ -45,6 +45,10 @@ module "app" {
   app_subnet_ids        = module.vpc.app_subnet_ids
   app_security_group_id = module.security_groups.app_security_group_id
   instance_profile_name = module.iam.ec2_instance_profile_name
+
+  rds_endpoint = module.rds.rds_endpoint
+  db_password  = var.db_password
+
 }
 
 module "private_nlb" {

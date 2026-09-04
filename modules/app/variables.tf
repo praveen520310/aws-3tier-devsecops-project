@@ -23,3 +23,14 @@ variable "instance_type" {
   type        = string
   default     = "t3.micro"
 }
+
+variable "rds_endpoint" {
+  description = "RDS primary endpoint"
+  type        = string
+}
+
+variable "db_password" {
+  description = "RDS database password"
+  type        = string
+  sensitive   = true
+}
