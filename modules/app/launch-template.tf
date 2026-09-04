@@ -1,4 +1,3 @@
-```hcl
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.environment}-app-"
   image_id      = "ami-0f918f7e67a3323f0"
@@ -160,4 +159,4 @@ resource "aws_launch_template" "app" {
     create_before_destroy = true
   }
 }
-```
+
