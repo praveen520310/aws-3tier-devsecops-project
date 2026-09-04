@@ -7,63 +7,138 @@ resource "aws_launch_template" "app" {
     name = var.instance_profile_name
   }
 
-  vpc_security_group_ids = [
-    var.app_security_group_id
-  ]
+  network_interfaces {
+    associate_public_ip_address = false
+    security_groups             = [var.app_security_group_id]
+  }
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
-
               set -e
 
+              # ---------------------------------------
+              # System packages
+              # ---------------------------------------
               apt-get update -y
-              apt-get install -y python3
+              apt-get install -y python3 python3-pip python3-venv snapd
 
+              # ---------------------------------------
+              # Install and start AWS SSM Agent
+              # ---------------------------------------
+              snap install amazon-ssm-agent --classic
+
+              systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+              systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+
+              # ---------------------------------------
+              # Application setup
+              # ---------------------------------------
               mkdir -p /opt/app
+              python3 -m venv /opt/app/venv
 
+              /opt/app/venv/bin/pip install --upgrade pip
+              /opt/app/venv/bin/pip install mysql-connector-python
+
+              # ---------------------------------------
+              # Application code
+              # ---------------------------------------
               cat > /opt/app/app.py <<'PYTHON'
+              import os
+              import mysql.connector
               from http.server import BaseHTTPRequestHandler, HTTPServer
 
-              class AppHandler(BaseHTTPRequestHandler):
-                  def do_GET(self):
-                      response = """
-              <html>
-              <head>
-                <title>Dev App Server</title>
-              </head>
-              <body>
-                <h1>Dev App Server is Running</h1>
-                <p>Traffic reached the App Server through the Private NLB.</p>
-              </body>
-              </html>
-                      """
+              DB_HOST = os.environ["DB_HOST"]
+              DB_NAME = os.environ["DB_NAME"]
+              DB_USER = os.environ["DB_USER"]
+              DB_PASSWORD = os.environ["DB_PASSWORD"]
 
-                      self.send_response(200)
-                      self.send_header("Content-Type", "text/html")
-                      self.send_header("Content-Length", str(len(response.encode())))
+              class AppHandler(BaseHTTPRequestHandler):
+
+                  def do_GET(self):
+                      if self.path == "/":
+                          self.send_response(200)
+                          self.send_header("Content-Type", "text/html")
+                          self.end_headers()
+                          self.wfile.write(
+                              b"<h1>App Server is running</h1>"
+                          )
+                          return
+
+                      if self.path == "/db":
+                          try:
+                              connection = mysql.connector.connect(
+                                  host=DB_HOST,
+                                  database=DB_NAME,
+                                  user=DB_USER,
+                                  password=DB_PASSWORD
+                              )
+
+                              cursor = connection.cursor()
+                              cursor.execute("SELECT DATABASE()")
+                              result = cursor.fetchone()
+
+                              cursor.close()
+                              connection.close()
+
+                              self.send_response(200)
+                              self.send_header("Content-Type", "text/html")
+                              self.end_headers()
+
+                              response = (
+                                  "<h1>RDS Connection Successful</h1>"
+                                  f"<p>Database: {result[0]}</p>"
+                              )
+
+                              self.wfile.write(response.encode())
+
+                          except Exception as error:
+                              self.send_response(500)
+                              self.send_header("Content-Type", "text/html")
+                              self.end_headers()
+
+                              response = (
+                                  "<h1>RDS Connection Failed</h1>"
+                                  f"<p>{error}</p>"
+                              )
+
+                              self.wfile.write(response.encode())
+
+                          return
+
+                      self.send_response(404)
                       self.end_headers()
-                      self.wfile.write(response.encode())
 
               server = HTTPServer(("0.0.0.0", 8080), AppHandler)
               server.serve_forever()
               PYTHON
 
-              cat > /etc/systemd/system/app.service <<'SERVICE'
+              # ---------------------------------------
+              # Application systemd service
+              # ---------------------------------------
+              cat > /etc/systemd/system/app.service <<EOF_SERVICE
               [Unit]
-              Description=Dev Application Server
+              Description=3-Tier Application Server
               After=network.target
 
               [Service]
-              ExecStart=/usr/bin/python3 /opt/app/app.py
+              Type=simple
+              User=root
+              Environment="DB_HOST=${var.rds_endpoint}"
+              Environment="DB_NAME=appdb"
+              Environment="DB_USER=admin"
+              Environment="DB_PASSWORD=${var.db_password}"
+              ExecStart=/opt/app/venv/bin/python /opt/app/app.py
               Restart=always
+              RestartSec=5
 
               [Install]
               WantedBy=multi-user.target
-              SERVICE
+              EOF_SERVICE
 
               systemctl daemon-reload
               systemctl enable app
-              systemctl start app
+              systemctl restart app
+
               EOF
   )
 
@@ -81,3 +156,4 @@ resource "aws_launch_template" "app" {
     create_before_destroy = true
   }
 }
+

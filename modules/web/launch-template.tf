@@ -1,3 +1,4 @@
+
 resource "aws_launch_template" "web" {
   name_prefix   = "${var.environment}-web-"
   image_id      = "ami-0f918f7e67a3323f0"
@@ -20,9 +21,23 @@ resource "aws_launch_template" "web" {
 
               set -e
 
+              # ---------------------------------------
+              # Install required packages
+              # ---------------------------------------
               apt-get update -y
-              apt-get install -y nginx
+              apt-get install -y nginx snapd
 
+              # ---------------------------------------
+              # Install and start AWS SSM Agent
+              # ---------------------------------------
+              snap install amazon-ssm-agent --classic
+
+              systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+              systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+
+              # ---------------------------------------
+              # Configure Nginx
+              # ---------------------------------------
               systemctl stop nginx
 
               rm -f /etc/nginx/sites-enabled/default
@@ -47,6 +62,7 @@ resource "aws_launch_template" "web" {
 
               systemctl enable nginx
               systemctl restart nginx
+
               EOF
   )
 
@@ -64,3 +80,4 @@ resource "aws_launch_template" "web" {
     create_before_destroy = true
   }
 }
+
