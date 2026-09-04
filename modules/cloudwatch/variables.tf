@@ -11,7 +11,7 @@ variable "sns_email" {
 variable "cpu_threshold" {
   description = "CPU utilization threshold for CloudWatch alarms"
   type        = number
-  default     = 1
+  default     = 80
 }
 
 variable "alarm_period" {
