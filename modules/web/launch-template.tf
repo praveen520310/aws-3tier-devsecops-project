@@ -7,9 +7,13 @@ resource "aws_launch_template" "web" {
     name = var.instance_profile_name
   }
 
-  vpc_security_group_ids = [
-    var.web_security_group_id
-  ]
+  network_interfaces {
+    associate_public_ip_address = true
+
+    security_groups = [
+      var.web_security_group_id
+    ]
+  }
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
