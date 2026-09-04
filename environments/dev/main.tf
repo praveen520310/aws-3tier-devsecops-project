@@ -73,6 +73,11 @@ module "rds" {
 module "backup" {
   source = "../../modules/backup"
 
+  providers = {
+    aws          = aws
+    aws.region_b = aws.region_b
+  }
+
   environment = "dev"
 }
 
