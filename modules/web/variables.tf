@@ -23,3 +23,9 @@ variable "instance_type" {
   type        = string
   default     = "t3.micro"
 }
+
+variable "private_nlb_dns_name" {
+  description = "DNS name of the internal private Network Load Balancer"
+  type        = string
+}
+

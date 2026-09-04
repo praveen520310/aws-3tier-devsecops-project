@@ -33,6 +33,8 @@ module "web" {
   web_subnet_ids        = module.vpc.web_subnet_ids
   web_security_group_id = module.security_groups.web_security_group_id
   instance_profile_name = module.iam.ec2_instance_profile_name
+
+  private_nlb_dns_name = module.private_nlb.private_nlb_dns_name
 }
 
 module "app" {

@@ -17,20 +17,27 @@ resource "aws_launch_template" "web" {
               dnf update -y
               dnf install -y nginx
 
-              systemctl enable nginx
-              systemctl start nginx
+              rm -f /etc/nginx/conf.d/default.conf
 
-              cat > /usr/share/nginx/html/index.html <<'HTML'
-              <html>
-              <head>
-                <title>Dev Web Server</title>
-              </head>
-              <body>
-                <h1>Dev Web Server is Running</h1>
-                <p>Traffic reached the Web Server through the Public NLB.</p>
-              </body>
-              </html>
-              HTML
+              cat > /etc/nginx/conf.d/app.conf <<NGINX
+              server {
+                  listen 80;
+                  server_name _;
+
+                  location / {
+                      proxy_pass http://${var.private_nlb_dns_name}:8080;
+                      proxy_set_header Host \$host;
+                      proxy_set_header X-Real-IP \$remote_addr;
+                      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                      proxy_set_header X-Forwarded-Proto \$scheme;
+                  }
+              }
+              NGINX
+
+              nginx -t
+
+              systemctl enable nginx
+              systemctl restart nginx
               EOF
   )
 
