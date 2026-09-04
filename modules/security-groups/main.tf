@@ -41,11 +41,11 @@ resource "aws_security_group" "app" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "Allow application traffic from web tier"
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.web.id]
+    description = "Allow application traffic from within VPC"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
   }
 
   egress {
