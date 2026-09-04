@@ -30,6 +30,7 @@ resource "aws_launch_template" "app" {
 
               /opt/app/venv/bin/pip install --upgrade pip
               /opt/app/venv/bin/pip install mysql-connector-python
+              /opt/app/venv/bin/python -c "import mysql.connector; print('mysql-connector-python installed successfully')"
 
               cat > /opt/app/app.py <<'PYTHON'
               import os
